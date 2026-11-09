@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'service_details_screen.dart'; // تأكد من استيراد شاشة التفاصيل
+import 'service_details_screen.dart';
 
 class ClientHomeScreen extends StatelessWidget {
   const ClientHomeScreen({Key? key}) : super(key: key);
@@ -7,108 +7,69 @@ class ClientHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'منصة معقب - الخدمات السريعة',
-          style: TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
+        title: const Text('منصة معقب - الخدمات السريعة'),
+        backgroundColor: Colors.blue,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // بطاقة الترحيب
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.waving_hand, color: Colors.blue),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'أهلاً بك، عبد الله\nانجز طلباتك الجديدة بسرعة وسهولة.',
-                      style: TextStyle(color: Colors.blue[900], fontSize: 14, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
             const Text(
-              'الخدمات السريعة',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+              'أهلاً بك، عبد الله',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 16),
-            
-            // شبكة الخدمات مع تفعيل الانتقال
+            const SizedBox(height: 8),
+            const Text(
+              'انجز طلباتك بسرعة وسهولة',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'الخدمات السريعة:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
+            ),
+            const SizedBox(height: 15),
             Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
+              child: ListView(
                 children: [
-                  _buildServiceItem(
+                  _buildServiceCard(
                     context,
                     title: 'تخليص معاملات',
-                    icon: Icons.description_outlined,
-                    color: Colors.blue,
+                    subtitle: 'إنجاز المراجعات والخطابات الرسمية',
+                    icon: Icons.description,
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const ServiceDetailsScreen(serviceTitle: 'تخليص معاملات'),
+                          builder: (context) => const ServiceDetailsScreen(serviceName: 'تخليص معاملات'),
                         ),
                       );
                     },
                   ),
-                  _buildServiceItem(
+                  _buildServiceCard(
                     context,
                     title: 'استمارات',
-                    icon: Icons.assignment_outlined,
-                    color: Colors.green,
+                    subtitle: 'تعبئة وتحديث النماذج الحكومية',
+                    icon: Icons.assignment,
                     onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const ServiceDetailsScreen(serviceTitle: 'استمارات'),
+                          builder: (context) => const ServiceDetailsScreen(serviceName: 'استمارات'),
                         ),
                       );
                     },
                   ),
-                  _buildServiceItem(
+                  _buildServiceCard(
                     context,
                     title: 'الطلبات النشطة',
-                    icon: Icons.hourglass_top_outlined,
-                    color: Colors.orange,
+                    subtitle: 'متابعة حالة معاملاتك الحالية',
+                    icon: Icons.hourglass_top,
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ServiceDetailsScreen(serviceTitle: 'الطلبات النشطة'),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildServiceItem(
-                    context,
-                    title: 'سجل الطلبات',
-                    icon: Icons.history_edu_outlined,
-                    color: Colors.purple,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ServiceDetailsScreen(serviceTitle: 'سجل الطلبات'),
-                        ),
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('جاري تحميل الطلبات النشطة...')),
                       );
                     },
                   ),
@@ -121,47 +82,25 @@ class ClientHomeScreen extends StatelessWidget {
     );
   }
 
-  // دالة بناء عنصر الخدمة
-  Widget _buildServiceItem(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      elevation: 1,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 32, color: color),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
+  Widget _buildServiceCard(BuildContext context, {required String title, required String subtitle, required IconData icon, required VoidCallback onTap}) {
+    return Card(
+      elevation: 3,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: CircleAvatar(
+          radius: 28,
+          backgroundColor: Colors.blue.shade50,
+          child: Icon(icon, size: 30, color: Colors.blue),
         ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 6.0),
+          child: Text(subtitle, style: const TextStyle(color: Colors.grey)),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.blue),
+        onTap: onTap,
       ),
     );
   }
