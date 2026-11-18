@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:expediter_app/screens/login_screen.dart';
 
-void main() {
-  runApp(const ExpediterApp());
+void main() async {
+  // التأكد من تهيئة أدوات فلاتر الأساسية قبل أي اتصال
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // تهيئة اتصال Firebase مع التطبيق
+  await Firebase.initializeApp();
+
+  runApp(const MyApp());
 }
 
-class ExpediterApp extends StatelessWidget {
-  const ExpediterApp({Key? key}) : super(key: key);
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,8 +23,12 @@ class ExpediterApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: Colors.white,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+        ),
+        useMaterial3: true,
       ),
-      // يبدأ التطبيق من شاشة تسجيل الدخول التي تنقلك لشاشة العميل الرئيسية
+      // يبدأ التطبيق من شاشة تسجيل الدخول
       home: const LoginScreen(),
     );
   }

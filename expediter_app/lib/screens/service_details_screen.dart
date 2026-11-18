@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ServiceDetailsScreen extends StatefulWidget {
   final String serviceName;
 
-  const ServiceDetailsScreen({Key? key, required this.serviceName}) : super(key: key);
+  const ServiceDetailsScreen({super.key, required this.serviceName});
 
   @override
   State<ServiceDetailsScreen> createState() => _ServiceDetailsScreenState();
@@ -12,12 +12,11 @@ class ServiceDetailsScreen extends StatefulWidget {
 
 class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _detailsController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  
+  final TextEditingController _detailsController = TextEditingController();
   bool _isLoading = false;
 
-  Future<void> _submitOrder() async {
+  Future<void> _submitRequest() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -25,35 +24,29 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
     });
 
     try {
-      final response = await ApiService.submitServiceOrder(
-        serviceName: widget.serviceName,
-        details: _detailsController.text,
-        phone: _phoneController.text,
-      );
+      await FirebaseFirestore.instance.collection('requests').add({
+        'serviceName': widget.serviceName, // حفظ اسم الخدمة المختارة
+        'phone': _phoneController.text.trim(),
+        'details': _detailsController.text.trim(),
+        'status': 'قيد المعالجة',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
 
       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم إرسال طلبك بنجاح وحفظه في قاعدة البيانات!'),
+          backgroundColor: Colors.green,
+        ),
+      );
 
-      if (response['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response['message'] ?? 'تم إرسال الطلب بنجاح!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response['message'] ?? 'حدث خطأ أثناء إرسال الطلب'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _phoneController.clear();
+      _detailsController.clear();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('تعذر الاتصال بالسيرفر: $e'),
+          content: Text('حدث خطأ أثناء الإرسال: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -68,8 +61,8 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
 
   @override
   void dispose() {
-    _detailsController.dispose();
     _phoneController.dispose();
+    _detailsController.dispose();
     super.dispose();
   }
 
@@ -77,86 +70,73 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('تفاصيل: ${widget.serviceName}'),
+        title: Text('خدمة: ${widget.serviceName}'),
         backgroundColor: Colors.blue,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: ListView(
             children: [
               Text(
                 'خدمة: ${widget.serviceName}',
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
               ),
               const SizedBox(height: 8),
               const Text(
-                'يرجى تعبئة البيانات المطلوبة أدناه لإتمام الطلب بسرعة وسهولة.',
-                style: TextStyle(fontSize: 15, color: Colors.grey),
+                'يرجى تعبئة البيانات المطلوبة أدناه لإتمام الطلب بسرعة وسهولة',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
-              const SizedBox(height: 25),
-              
+              const SizedBox(height: 24),
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'رقم للتواصل',
-                  prefixIcon: Icon(Icons.phone),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'رقم التواصل',
+                  hintText: '05xxxxxxxx',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.phone),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'يرجى إدخال رقم التواصل';
+                    return 'الرجاء إدخال رقم التواصل';
                   }
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
-
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _detailsController,
                 maxLines: 4,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'تفاصيل الطلب أو المعاملة',
-                  alignLabelWithHint: true,
-                  prefixIcon: Icon(Icons.notes),
-                  border: OutlineInputBorder(),
+                  hintText: 'اكتب تفاصيل طلبك هنا...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.note_alt_outlined),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'يرجى كتابة تفاصيل الطلب';
+                    return 'الرجاء إدخال تفاصيل الطلب';
                   }
                   return null;
                 },
               ),
-
-              const Spacer(),
-
+              const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
+                height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.all(14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  onPressed: _isLoading ? null : _submitOrder,
+                  onPressed: _isLoading ? null : _submitRequest,
                   child: _isLoading
-                      ? const SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
+                      ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
                           'تنفيذ الطلب',
-                          style: TextStyle(fontSize: 18, color: Colors.white),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                 ),
               ),

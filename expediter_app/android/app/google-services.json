@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "431692134883",
+    "project_id": "expediter-app-b00e3",
+    "storage_bucket": "expediter-app-b00e3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:431692134883:android:194a16b045d124f09988d6",
+        "android_client_info": {
+          "package_name": "com.expediter_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5hXTIbJpRkw89v_khoukGBBa6YtrJ5wc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
