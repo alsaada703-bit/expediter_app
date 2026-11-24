@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مراجعة CNE 401 - بطاقات استذكار واختبار</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
+    .container { max-width: 600px; width: 100%; text-align: center; }
+    h1 { color: #38bdf8; margin-bottom: 10px; font-size: 1.5rem; }
+    .progress { color: #94a3b8; margin-bottom: 20px; font-size: 0.95rem; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 30px 25px; min-height: 220px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: transform 0.2s, border-color 0.2s; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    .card:hover { border-color: #38bdf8; }
+    .tag { background: #0284c7; color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; margin-bottom: 15px; }
+    .content { font-size: 1.15rem; line-height: 1.7; white-space: pre-line; }
+    .hint { color: #64748b; font-size: 0.85rem; margin-top: 20px; }
+    .controls { display: flex; gap: 12px; justify-content: center; margin-top: 25px; flex-wrap: wrap; }
+    button { background: #334155; color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #475569; }
+    button.correct { background: #16a34a; }
+    button.correct:hover { background: #15803d; }
+    button.wrong { background: #dc2626; }
+    button.wrong:hover { background: #b91c1c; }
+    .score-box { display: none; background: #1e293b; padding: 30px; border-radius: 16px; border: 1px solid #38bdf8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>مراجعة CNE 401 - تنظيم وعمارة الحاسب</h1>
+    <div class="progress" id="progress">البطاقة 1 من 10</div>
+    
+    <div class="card" id="card" onclick="flipCard()">
+      <span class="tag" id="tag">المقاطعات</span>
+      <div class="content" id="content"></div>
+      <div class="hint" id="hint">اضغط على البطاقة لإظهار الإجابة</div>
+    </div>
+
+    <div class="controls" id="controls">
+      <button onclick="prevCard()">السابق</button>
+      <button class="wrong" onclick="markCard(false)">ما عرفتها ✗</button>
+      <button class="correct" onclick="markCard(true)">عرفتها ✓</button>
+      <button onclick="nextCard()">التالي</button>
+    </div>
+
+    <div class="score-box" id="scoreBox">
+      <h2>انتهت المراجعة! 🎉</h2>
+      <p id="scoreText" style="font-size: 1.2rem; margin: 20px 0;"></p>
+      <button class="correct" onclick="restart()">إعادة الاختبار</button>
+    </div>
+  </div>
+
+  <script>
+    const cards = [
+      { tag: "المقاطعات (Interrupts)", q: "ما الفرق بين التعامل المتسلسل (Sequential) والمتداخل (Nested) مع المقاطعات المتعددة؟", a: "• المتسلسل: تعطيل المقاطعات الجديدة وتنفيذها بالترتيب واحدة تلو الأخرى.\n• المتداخل: المقاطعة ذات الأولوية الأعلى تقاطع الأقل أولوية، ثم يعود المعالج للأولى." },
+      { tag: "النواقل (Buses)", q: "ما هي الخطوط الثلاثة للناقل (Bus) وما وظيفة كل منها؟", a: "• Address: تحديد موقع البيانات وسعة الذاكرة.\n• Data: نقل البيانات والتعليمات (عرضها يحدد الأداء).\n• Control: إشارات التحكم والتوقيت (Read/Write)." },
+      { tag: "تحكيم الناقل (Arbitration)", q: "قارن بين التحكيم المركزي (Centralized) والموزع (Distributed) للناقل؟", a: "• المركزي: جهاز واحد (Bus Arbiter) يتحكم في الوصول للناقل.\n• الموزع: كل وحدة تمتلك منطق تحكم خاص بها للمطالبة بالناقل ومشاركته." },
+      { tag: "طرق الوصول (Access Methods)", q: "اربط كل نوع ذاكرة بطريقة الوصول المناسبة:\n(Tape, Disk, RAM, Cache)", a: "• Tape: وصول تسلسلي (Sequential)\n• Disk: وصول مباشر (Direct)\n• RAM: وصول عشوائي (Random)\n• Cache: وصول ترابطي (Associative)" },
+      { tag: "DRAM vs SRAM", q: "قارن بين DRAM و SRAM من حيث (التخزين، التنشيط، السرعة، الاستخدام)؟", a: "• DRAM: مكثفات، تحتاج تنشيط (Refresh)، أبطأ، تُستخدم في Main Memory.\n• SRAM: قلابات (Flip-flops)، لا تحتاج تنشيط، أسرع، تُستخدم في Cache." },
+      { tag: "أنواع ROM", q: "كيف يتم مسح البيانات في كل من:\nEPROM و EEPROM و Flash؟", a: "• EPROM: بالأشعة فوق البنفسجية (UV) للشريحة كاملة.\n• EEPROM: كهربائياً على مستوى البايت (Byte-level).\n• Flash: كهربائياً على مستوى البلوك (Block-level)." },
+      { tag: "الكاش (Cache)", q: "ما هو مبدأ التوطن (Locality of Reference) ولماذا تعتمد عليه الذاكرة المخبأة؟", a: "ميل البرنامج لتكرار الوصول لنفس مجموعة العناوين القريبة (مثل الحلقات التكرارية Loops)، مما يسمح للكاش بتخزينها مسبقاً لتسريع الأداء." },
+      { tag: "الأقراص الصلبة (Magnetic Disk)", q: "مم يتكون زمن الوصول (Access Time) للقرص الصلب؟", a: "يتكون من مجموع:\n1. زمن البحث (Seek Time): لتحريك الذراع للمسار المطلوب.\n2. التأخير الدوراني (Rotational Delay): لوصول القطاع تحت الرأس." },
+      { tag: "قوانين الذاكرة والكاش", q: "اذكر قانون:\n1. زمن دورة الذاكرة (Cycle Time)\n2. متوسط زمن وصول الكاش (Average Access Time)", a: "1. Tc = TA + TR\n2. Tav = Tc + (1 - H) × TMM" },
+      { tag: "قوانين الأقراص", q: "اذكر قانون:\n1. متوسط التأخير الدوراني\n2. زمن نقل البيانات على القرص (Transfer Time)", a: "1. Avg Rotational Delay = 1 / (2 × r)\n2. Tx = x / (r × m)\n(حيث r بالثانية r.p.s و m سعة المسار)" }
+    ];
+
+    let current = 0;
+    let isFlipped = false;
+    let known = 0;
+
+    function renderCard() {
+      isFlipped = false;
+      document.getElementById('tag').innerText = cards[current].tag;
+      document.getElementById('content').innerText = cards[current].q;
+      document.getElementById('hint').innerText = "اضغط على البطاقة لإظهار الإجابة";
+      document.getElementById('progress').innerText = `البطاقة ${current + 1} من ${cards.length} (عرفت: ${known})`;
+    }
+
+    function flipCard() {
+      isFlipped = !isFlipped;
+      document.getElementById('content').innerText = isFlipped ? cards[current].a : cards[current].q;
+      document.getElementById('hint').innerText = isFlipped ? "اضغط للعودة للسؤال" : "اضغط على البطاقة لإظهار الإجابة";
+    }
+
+    function markCard(isKnown) {
+      if (isKnown) known++;
+      nextCard();
+    }
+
+    function nextCard() {
+      if (current < cards.length - 1) {
+        current++;
+        renderCard();
+      } else {
+        document.getElementById('card').style.display = 'none';
+        document.getElementById('controls').style.display = 'none';
+        document.getElementById('progress').style.display = 'none';
+        document.getElementById('scoreBox').style.display = 'block';
+        document.getElementById('scoreText').innerText = `نتيجتك: ${known} من ${cards.length}`;
+      }
+    }
+
+    function prevCard() {
+      if (current > 0) {
+        current--;
+        renderCard();
+      }
+    }
+
+    function restart() {
+      current = 0;
+      known = 0;
+      document.getElementById('card').style.display = 'flex';
+      document.getElementById('controls').style.display = 'flex';
+      document.getElementById('progress').style.display = 'block';
+      document.getElementById('scoreBox').style.display = 'none';
+      renderCard();
+    }
+
+    renderCard();
+  </script>
+</body>
+</html>

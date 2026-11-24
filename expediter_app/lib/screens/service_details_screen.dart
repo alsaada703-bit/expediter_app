@@ -3,59 +3,114 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ServiceDetailsScreen extends StatefulWidget {
   final String serviceName;
+  final String nationalId;
 
-  const ServiceDetailsScreen({super.key, required this.serviceName});
+  const ServiceDetailsScreen({
+    super.key,
+    required this.serviceName,
+    this.nationalId = '',
+  });
 
   @override
   State<ServiceDetailsScreen> createState() => _ServiceDetailsScreenState();
 }
 
 class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _detailsController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _detailsController = TextEditingController();
   bool _isLoading = false;
 
-  Future<void> _submitRequest() async {
-    if (!_formKey.currentState!.validate()) return;
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedPhone();
+  }
 
-    setState(() {
-      _isLoading = true;
-    });
+  Future<void> _loadSavedPhone() async {
+    if (widget.nationalId.isEmpty) return;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('user_profiles')
+          .doc(widget.nationalId)
+          .get();
+      if (doc.exists && mounted) {
+        final savedPhone = (doc.data()?['phone'] ?? '').toString();
+        if (savedPhone.isNotEmpty && _phoneController.text.isEmpty) {
+          _phoneController.text = savedPhone;
+        }
+      }
+    } catch (_) {
+      // تجاهل في حال عدم وجود ملف شخصي محفوظ بعد
+    }
+  }
+
+  Future<void> _submitRequest() async {
+    final phone = _phoneController.text.trim();
+    final details = _detailsController.text.trim();
+
+    if (phone.length != 10 || !phone.startsWith('05')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('الرجاء إدخال رقم جوال سعودي صحيح (يبدأ بـ 05 ومكون من 10 أرقام)'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (details.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('الرجاء كتابة تفاصيل المعاملة'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
 
     try {
       await FirebaseFirestore.instance.collection('requests').add({
-        'serviceName': widget.serviceName, // حفظ اسم الخدمة المختارة
-        'phone': _phoneController.text.trim(),
-        'details': _detailsController.text.trim(),
+        'serviceName': widget.serviceName,
+        'nationalId': widget.nationalId,
+        'phone': phone,
+        'details': details,
         'status': 'قيد المعالجة',
+        'price': 0,
         'createdAt': FieldValue.serverTimestamp(),
       });
+
+      // حفظ رقم الجوال تلقائياً للمرات القادمة
+      if (widget.nationalId.isNotEmpty) {
+        await FirebaseFirestore.instance
+            .collection('user_profiles')
+            .doc(widget.nationalId)
+            .set({
+          'nationalId': widget.nationalId,
+          'phone': phone,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('تم إرسال طلبك بنجاح وحفظه في قاعدة البيانات!'),
+          content: Text('تم إرسال طلبك بنجاح!'),
           backgroundColor: Colors.green,
         ),
       );
-
-      _phoneController.clear();
-      _detailsController.clear();
+      Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('حدث خطأ أثناء الإرسال: $e'),
+          content: Text('حدث خطأ: $e'),
           backgroundColor: Colors.red,
         ),
       );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -70,75 +125,74 @@ class _ServiceDetailsScreenState extends State<ServiceDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('خدمة: ${widget.serviceName}'),
-        backgroundColor: Colors.blue,
+        title: Text(widget.serviceName),
+        centerTitle: true,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
+        padding: const EdgeInsets.all(20.0),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'خدمة: ${widget.serviceName}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
+                'طلب خدمة: ${widget.serviceName}',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               const Text(
-                'يرجى تعبئة البيانات المطلوبة أدناه لإتمام الطلب بسرعة وسهولة',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+                'أدخل بياناتك وتفاصيل المعاملة وسيتواصل معك المعقب فوراً.',
+                style: TextStyle(color: Colors.grey),
               ),
               const SizedBox(height: 24),
-              TextFormField(
+              TextField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
+                maxLength: 10,
                 decoration: InputDecoration(
-                  labelText: 'رقم التواصل',
-                  hintText: '05xxxxxxxx',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  labelText: 'رقم الجوال للتواصل',
+                  hintText: '05XXXXXXXX',
                   prefixIcon: const Icon(Icons.phone),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'الرجاء إدخال رقم التواصل';
-                  }
-                  return null;
-                },
               ),
-              const SizedBox(height: 20),
-              TextFormField(
+              const SizedBox(height: 16),
+              TextField(
                 controller: _detailsController,
                 maxLines: 4,
                 decoration: InputDecoration(
-                  labelText: 'تفاصيل الطلب أو المعاملة',
-                  hintText: 'اكتب تفاصيل طلبك هنا...',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  prefixIcon: const Icon(Icons.note_alt_outlined),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'الرجاء إدخال تفاصيل الطلب';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  labelText: 'تفاصيل المعاملة',
+                  hintText: 'اكتب شرحاً مختصراً لطلبك...',
+                  alignLabelWithHint: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  onPressed: _isLoading ? null : _submitRequest,
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'تنفيذ الطلب',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
                 ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _submitRequest,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text(
+                        'إرسال الطلب',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
               ),
             ],
           ),

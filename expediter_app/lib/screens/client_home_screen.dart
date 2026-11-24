@@ -1,9 +1,71 @@
 import 'package:flutter/material.dart';
 import 'service_details_screen.dart';
 import 'active_requests_screen.dart';
+import 'login_screen.dart';
 
 class ClientHomeScreen extends StatelessWidget {
-  const ClientHomeScreen({super.key});
+  final String nationalId;
+
+  const ClientHomeScreen({
+    super.key,
+    this.nationalId = '',
+  });
+
+  Future<void> _openExpediterPanel(BuildContext context) async {
+    final pinController = TextEditingController();
+    const adminPin = '1234';
+
+    final authorized = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('دخول لوحة المعقب'),
+        content: TextField(
+          controller: pinController,
+          keyboardType: TextInputType.number,
+          obscureText: true,
+          maxLength: 4,
+          decoration: const InputDecoration(
+            labelText: 'أدخل الرمز السري (1234)',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.lock_outline),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (pinController.text.trim() == adminPin) {
+                Navigator.pop(dialogContext, true);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('الرمز السري غير صحيح!'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('دخول'),
+          ),
+        ],
+      ),
+    );
+
+    if (authorized == true && context.mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ActiveRequestsScreen(
+            isExpediter: true,
+            nationalId: nationalId,
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,13 +79,24 @@ class ClientHomeScreen extends StatelessWidget {
         backgroundColor: Colors.blue,
         centerTitle: true,
         elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: 'تسجيل الخروج',
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // بطاقة ترحيبية عصرية
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -36,16 +109,16 @@ class ClientHomeScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.blue.withOpacity(0.2),
+                    color: Colors.blue.withValues(alpha: 0.2),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'أهلاً بك، عبد الله 👋',
                     style: TextStyle(
                       fontSize: 22,
@@ -53,10 +126,12 @@ class ClientHomeScreen extends StatelessWidget {
                       color: Colors.white,
                     ),
                   ),
-                  SizedBox(height: 6),
+                  const SizedBox(height: 6),
                   Text(
-                    'أنجز معاملاتك وطلباتك الحكومية بسرعة وموثوقية',
-                    style: TextStyle(fontSize: 14, color: Colors.white70),
+                    nationalId.isNotEmpty
+                        ? 'رقم الهوية المسجل: $nationalId'
+                        : 'أنجز معاملاتك وطلباتك الحكومية بسرعة وموثوقية',
+                    style: const TextStyle(fontSize: 14, color: Colors.white70),
                   ),
                 ],
               ),
@@ -84,8 +159,9 @@ class ClientHomeScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const ServiceDetailsScreen(
+                          builder: (context) => ServiceDetailsScreen(
                             serviceName: 'تخليص معاملات',
+                            nationalId: nationalId,
                           ),
                         ),
                       );
@@ -101,8 +177,9 @@ class ClientHomeScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const ServiceDetailsScreen(
+                          builder: (context) => ServiceDetailsScreen(
                             serviceName: 'استمارات',
+                            nationalId: nationalId,
                           ),
                         ),
                       );
@@ -118,10 +195,22 @@ class ClientHomeScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const ActiveRequestsScreen(),
+                          builder: (context) => ActiveRequestsScreen(
+                            isExpediter: false,
+                            nationalId: nationalId,
+                          ),
                         ),
                       );
                     },
+                  ),
+                  const Divider(height: 28),
+                  _buildServiceCard(
+                    context,
+                    title: 'لوحة تحكم المعقب',
+                    subtitle: 'إدارة الطلبات، تحديث الحالات، والتواصل مع العملاء',
+                    icon: Icons.admin_panel_settings_outlined,
+                    iconColor: Colors.indigo,
+                    onTap: () => _openExpediterPanel(context),
                   ),
                 ],
               ),
@@ -149,7 +238,7 @@ class ClientHomeScreen extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         leading: CircleAvatar(
           radius: 26,
-          backgroundColor: iconColor.withOpacity(0.1),
+          backgroundColor: iconColor.withValues(alpha: 0.1),
           child: Icon(icon, size: 28, color: iconColor),
         ),
         title: Text(
